@@ -1,14 +1,14 @@
 # Since the `formPOL` function doesn't refund the left token, tokens can be locked in the `DAO` contract.
 
-https://github.com/code-423n4/2024-01-salty/blob/53516c2cdfdfacb662cdea6417c52f23c94d5b5b/src/dao/DAO.sol#L316-L324
-
 ## Impact
 Tokens(SALT, DAI, USDS) can be locked in the `DAO` contract because the contract doesn't refund remaining amount of the tokens.
 
+## Severity
+High
 
 ## Proof of Concept
 If a user calls the `performUpkeep` function of the `Upkeep` contract, `step3` and `step4` is called and these functions also called the `_formPOL` function.
-```javascript
+```solidity
     // 3. Convert a default 5% of the remaining WETH to USDS/DAI Protocol Owned Liquidity.
     function step3() public onlySameContract
         {
@@ -35,7 +35,7 @@ If a user calls the `performUpkeep` function of the `Upkeep` contract, `step3` a
         }
 ```
 And then, the `_formPOL` function calls `formPOL` function of the `DAO` contact.
-```javascript
+```solidity
     function _formPOL( IERC20 tokenA, IERC20 tokenB, uint256 amountWETH) internal
         {
         uint256 wethAmountPerToken = amountWETH >> 1;
@@ -52,7 +52,7 @@ And then, the `_formPOL` function calls `formPOL` function of the `DAO` contact.
         dao.formPOL(tokenA, tokenB, amountA, amountB);
         }
 ```
-```javascript
+```solidity
     function formPOL( IERC20 tokenA, IERC20 tokenB, uint256 amountA, uint256 amountB ) external
         {
         require( msg.sender == address(exchangeConfig.upkeep()), "DAO.formPOL is only callable from the Upkeep contract" );
@@ -64,7 +64,7 @@ And then, the `_formPOL` function calls `formPOL` function of the `DAO` contact.
         }
 ```
 And `formPOL` function calls the `depositLiquidityAndIncreaseShare` function of the `collateralAndLiquidity` contract, and then `_depositLiquidityAndIncreaseShare` function is called.
-```javascript
+```solidity
     function depositLiquidityAndIncreaseShare( IERC20 tokenA, IERC20 tokenB, uint256 maxAmountA, uint256 maxAmountB, uint256 minLiquidityReceived, uint256 deadline, bool useZapping ) external nonReentrant ensureNotExpired(deadline) returns (uint256 addedAmountA, uint256 addedAmountB, uint256 addedLiquidity)
         {
         require( PoolUtils._poolID( tokenA, tokenB ) != collateralPoolID, "Stablecoin collateral cannot be deposited via Liquidity.depositLiquidityAndIncreaseShare" );
@@ -72,7 +72,7 @@ And `formPOL` function calls the `depositLiquidityAndIncreaseShare` function of 
         return _depositLiquidityAndIncreaseShare(tokenA, tokenB, maxAmountA, maxAmountB, minLiquidityReceived, useZapping);
         }
 ```
-```javascript
+```solidity
     function _depositLiquidityAndIncreaseShare( IERC20 tokenA, IERC20 tokenB, uint256 maxAmountA, uint256 maxAmountB, uint256 minLiquidityReceived, bool useZapping ) internal returns (uint256 addedAmountA, uint256 addedAmountB, uint256 addedLiquidity)
         {
         require( exchangeConfig.walletHasAccess(msg.sender), "Sender does not have exchange access" );
@@ -121,14 +121,15 @@ Add the logic that refund the exceeded amount of tokens to the user.
 
 # Unexpected result can occur since the logic of `winningParameterVote` is incorrect.
 
-https://github.com/code-423n4/2024-01-salty/blob/53516c2cdfdfacb662cdea6417c52f23c94d5b5b/src/dao/Proposals.sol#L364-L381
-
 ## Impact
 Unexpected result can occur because the result of the `winningParameterVote` function would be `NO_CHANGE` when the `increaseTotal` and `decreaseTotal` are the same.
 
+## Severity
+Medium
+
 ## Proof of Concept
 In `_finalizeParameterBallot` function of `DAO` contract, the `winningParameterVote` function of `Proposals` contract is called.
-```javascript
+```solidity
     function _finalizeParameterBallot( uint256 ballotID ) internal
         {
         Ballot memory ballot = proposals.ballotForID(ballotID);
@@ -146,7 +147,7 @@ In `_finalizeParameterBallot` function of `DAO` contract, the `winningParameterV
         emit BallotFinalized(ballotID, winningVote);
         }
 ```
-```javascript
+```solidity
 function winningParameterVote( uint256 ballotID ) external view returns (Vote)
     {
     mapping(Vote=>uint256) storage votes = _votesCastForBallot[ballotID];
